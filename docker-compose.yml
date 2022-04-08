@@ -1,0 +1,73 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-game
+    depends_on:
+      - db
+    environment:
+      - 'DB_USER=${DB_USER}'
+      - 'DB_PASS=${DB_PASS}'
+      - 'DB_HOST=${DB_HOST}'
+      - 'DB_PORT=${DB_PORT}'
+      - 'DB_NAME=${DB_NAME}'
+      - 'DB_PARAMS=${DB_PARAMS}'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://localhost:8080/health'
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    image: 'rfdez/my-game:0.1.0'
+    networks:
+      - my-game-net
+    ports:
+      - '8080:8080'
+    restart: always
+  db:
+    container_name: my-game-db
+    environment:
+      POSTGRES_USER: '${DB_USER}'
+      POSTGRES_PASSWORD: '${DB_PASS}'
+      POSTGRES_DB: '${DB_NAME}'
+    expose:
+      - '5432'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    image: 'postgres:14.2-alpine'
+    networks:
+      - my-game-net
+    restart: always
+    volumes:
+      - 'data:/var/lib/postgresql/data'
+      - './sql/:/docker-entrypoint-initdb.d'
+  adminer:
+    container_name: db-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    image: 'adminer:latest'
+    networks:
+      - my-game-net
+    ports:
+      - '8081:8080'
+    restart: always
+volumes:
+  data:
+    driver: local
+networks:
+  my-game-net:
+    driver: bridge
