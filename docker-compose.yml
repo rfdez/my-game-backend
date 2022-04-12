@@ -1,35 +1,67 @@
+---
 version: '3.8'
+
+x-app:
+  &default-app
+  depends_on:
+    - db
+  environment:
+    &default-env
+    DB_USER: ${DB_USER}
+    DB_PASS: ${DB_PASS}
+    DB_HOST: ${DB_HOST}
+    DB_PORT: ${DB_PORT}
+    DB_NAME: ${DB_NAME}
+    DB_PARAMS: ${DB_PARAMS}
+  networks:
+    - my-game-net
+  restart: on-failure
+
 services:
   app:
+    <<: *default-app
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: my-game
-    depends_on:
-      - db
+    container_name: my-game-prod
     environment:
-      - 'DB_USER=${DB_USER}'
-      - 'DB_PASS=${DB_PASS}'
-      - 'DB_HOST=${DB_HOST}'
-      - 'DB_PORT=${DB_PORT}'
-      - 'DB_NAME=${DB_NAME}'
-      - 'DB_PARAMS=${DB_PARAMS}'
+      <<: *default-env
+      GIN_MODE: release
     healthcheck:
       test:
-        - CMD
-        - curl
-        - '-f'
-        - 'http://localhost:8080/health'
+        - CMD-SHELL
+        - curl -f http://localhost:8080/health || exit 1
       interval: 1m30s
       timeout: 30s
       retries: 5
       start_period: 30s
-    image: 'rfdez/my-game:0.1.0'
-    networks:
-      - my-game-net
+    image: rfdez/my-game:latest
     ports:
       - '8080:8080'
-    restart: always
+  dev-app:
+    <<: *default-app
+    container_name: my-game-dev
+    image: cosmtrek/air
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./:/app/
+    working_dir: /app
+  debug-app:
+    <<: *default-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: debug
+    cap_add:
+      - SYS_PTRACE
+    container_name: my-game-debug
+    image: rfdez/my-game:latest
+    ports:
+      - '8080:8080'
+      - '40000:40000'
+    security_opt:
+      - "seccomp:unconfined"
   db:
     container_name: my-game-db
     environment:
@@ -41,7 +73,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready
+        - pg_isready || exit 1
       interval: 1m30s
       timeout: 30s
       retries: 5
@@ -49,25 +81,16 @@ services:
     image: 'postgres:14.2-alpine'
     networks:
       - my-game-net
-    restart: always
+    restart: on-failure
     volumes:
       - 'data:/var/lib/postgresql/data'
       - './sql/:/docker-entrypoint-initdb.d'
-  adminer:
-    container_name: db-adminer
-    environment:
-      ADMINER_DEFAULT_SERVER: db
-    depends_on:
-      - db
-    image: 'adminer:latest'
-    networks:
-      - my-game-net
-    ports:
-      - '8081:8080'
-    restart: always
+
 volumes:
   data:
     driver: local
+    name: data
 networks:
   my-game-net:
     driver: bridge
+    name: my-game-net
