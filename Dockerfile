@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
 ##
-## Base
+## Build
 ##
 
-FROM golang:1.18-alpine as base
+FROM golang:1.18-alpine as builder
 
 WORKDIR /app
 
@@ -21,19 +21,12 @@ COPY cmd ./cmd
 COPY internal ./internal
 COPY kit ./kit
 
-##
-## Build
-##
-FROM base as builder
-
 RUN go build -o /my-game -a ./cmd/api/main.go
-
-CMD [ "/my-game" ]
 
 ##
 ## Debug
 ##
-FROM base as debug
+FROM builder as debug
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest \
     && go build -gcflags="all=-N -l" -o /my-game -a ./cmd/api/main.go

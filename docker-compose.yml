@@ -56,7 +56,7 @@ services:
     cap_add:
       - SYS_PTRACE
     container_name: my-game-debug
-    image: rfdez/my-game:latest
+    image: rfdez/my-game:debug
     ports:
       - '8080:8080'
       - '40000:40000'
@@ -83,13 +83,31 @@ services:
       - my-game-net
     restart: on-failure
     volumes:
-      - 'data:/var/lib/postgresql/data'
+      - 'my-game-data:/var/lib/postgresql/data'
       - './sql/:/docker-entrypoint-initdb.d'
 
+  adminer:
+    container_name: my-game-adminer
+    image: adminer
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: postgresql
+      ADMINER_DEFAULT_DB_HOST: db
+      ADMINER_DEFAULT_DB_NAME: ${DB_NAME}
+      ADMINER_DESIGN: nette
+      ADMINER_PLUGINS: tables-filter tinymce
+    ports:
+      - 8080:8080
+    networks:
+      - my-game-net
+    restart: always
+
+
 volumes:
-  data:
+  my-game-data:
     driver: local
-    name: data
+    name: my-game-data
 networks:
   my-game-net:
     driver: bridge

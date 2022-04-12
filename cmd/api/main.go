@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rfdez/my-game-backend/internal/checking"
 	"github.com/rfdez/my-game-backend/internal/errors"
+	"github.com/rfdez/my-game-backend/internal/fetcher"
 	"github.com/rfdez/my-game-backend/internal/platform/bus/inmemory"
 	"github.com/rfdez/my-game-backend/internal/platform/server"
 	"github.com/rfdez/my-game-backend/internal/platform/storage/postgresql"
@@ -32,16 +33,19 @@ func main() {
 	// Bus
 	var (
 		commandBus = inmemory.NewCommandBus()
+		queryBus   = inmemory.NewQueryBus()
 	)
 
 	// Repositories
 	var (
 		checkRepository = postgresql.NewCheckRepository(db, cfg.DbTimeout)
+		eventRepository = postgresql.NewEventRepository(db, cfg.DbTimeout)
 	)
 
 	// Services
 	var (
-		checkService = checking.NewService(checkRepository)
+		checkService   = checking.NewService(checkRepository)
+		fetcherService = fetcher.NewService(eventRepository)
 	)
 
 	// Command Handlers
@@ -52,7 +56,15 @@ func main() {
 	// Register Command Handlers
 	commandBus.Register(checking.CheckCommandType, checkingCheckCommandHandler)
 
-	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus)
+	// Query Handlers
+	var (
+		fetcherRandomEventQueryHandler = fetcher.NewRandomEventQueryHandler(fetcherService)
+	)
+
+	// Register Query Handlers
+	queryBus.Register(fetcher.RandomEventQueryType, fetcherRandomEventQueryHandler)
+
+	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus)
 	if err := srv.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
