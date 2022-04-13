@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	RandomEventQueryType = "command.fetcher.random_event"
+	RandomEventQueryType query.Type = "command.fetcher.random_event"
 )
 
 // RandomEventQuery is a query to get a random event.
@@ -23,8 +23,14 @@ func NewRandomEventQuery(date string) RandomEventQuery {
 	}
 }
 
+// Type returns the type of the query.
 func (q RandomEventQuery) Type() query.Type {
 	return RandomEventQueryType
+}
+
+// Date returns the date of the random event.
+func (q RandomEventQuery) Date() string {
+	return q.date
 }
 
 // RandomEventQueryHandler is a query handler for RandomEventQuery.
@@ -41,10 +47,10 @@ func NewRandomEventQueryHandler(service Service) RandomEventQueryHandler {
 
 // Handle implements the query.Handler interface.
 func (h RandomEventQueryHandler) Handle(ctx context.Context, q query.Query) (query.Response, error) {
-	randomEventQuery, ok := q.(RandomEventQuery)
+	queryR, ok := q.(RandomEventQuery)
 	if !ok {
-		return nil, errors.NewWrongInput("unexpected query")
+		return nil, errors.New("invalid query type")
 	}
 
-	return h.service.RandomEvent(ctx, randomEventQuery.date)
+	return h.service.RandomEvent(ctx, queryR.Date())
 }

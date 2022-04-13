@@ -27,10 +27,10 @@ type Server struct {
 
 	// deps
 	commandBus command.Bus
-	queryBus   query.Bus[query.Response]
+	queryBus   query.Bus
 }
 
-func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus[query.Response]) (context.Context, Server) {
+func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus) (context.Context, Server) {
 	srv := Server{
 		engine:   gin.New(),
 		httpAddr: fmt.Sprintf("%s:%d", host, port),

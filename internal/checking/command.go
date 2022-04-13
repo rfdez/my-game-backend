@@ -7,7 +7,9 @@ import (
 	"github.com/rfdez/my-game-backend/kit/command"
 )
 
-const CheckCommandType command.Type = "command.checking.check"
+const (
+	CheckCommandType command.Type = "command.checking.check"
+)
 
 // CheckCommand is a command to check the status of the application.
 type CheckCommand struct {
@@ -38,7 +40,7 @@ func NewCheckCommandHandler(service Service) CheckCommandHandler {
 func (h CheckCommandHandler) Handle(ctx context.Context, cmd command.Command) error {
 	_, ok := cmd.(CheckCommand)
 	if !ok {
-		return errors.NewWrongInput("unexpected command")
+		return errors.New("invalid command type")
 	}
 
 	return h.service.Status(ctx)

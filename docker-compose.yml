@@ -86,24 +86,6 @@ services:
       - 'my-game-data:/var/lib/postgresql/data'
       - './sql/:/docker-entrypoint-initdb.d'
 
-  adminer:
-    container_name: my-game-adminer
-    image: adminer
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_DB_DRIVER: postgresql
-      ADMINER_DEFAULT_DB_HOST: db
-      ADMINER_DEFAULT_DB_NAME: ${DB_NAME}
-      ADMINER_DESIGN: nette
-      ADMINER_PLUGINS: tables-filter tinymce
-    ports:
-      - 8080:8080
-    networks:
-      - my-game-net
-    restart: always
-
-
 volumes:
   my-game-data:
     driver: local

@@ -66,7 +66,7 @@ func main() {
 
 	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus)
 	if err := srv.Run(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatal(errors.WrapInternal(err, "failed to run server"))
 	}
 }
 

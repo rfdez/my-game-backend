@@ -37,21 +37,28 @@ func (r *eventRepository) SearchAll(ctx context.Context) ([]mygame.Event, error)
 		return nil, errors.WrapInternal(err, "failed to search events")
 	}
 
-	var events []sqlEvent
-	rows.Scan(eventSQLStruct.Addr(&events)...)
+	defer rows.Close()
 
-	var eventsDomain = make([]mygame.Event, len(events))
-	for i, event := range events {
+	var events []mygame.Event
+	for rows.Next() {
+		var event sqlEvent
+		if err := rows.Scan(eventSQLStruct.Addr(&event)...); err != nil {
+			return nil, errors.WrapInternal(err, "failed to scan event")
+		}
+
 		evt, err := mygame.NewEvent(
 			event.ID,
 			event.Name,
+			event.Date.Format(time.RFC3339),
+			event.Shown,
+			event.Keywords,
 		)
 		if err != nil {
 			return nil, errors.WrapInternal(err, "failed to create event")
 		}
 
-		eventsDomain[i] = evt
+		events = append(events, evt)
 	}
 
-	return eventsDomain, nil
+	return events, nil
 }

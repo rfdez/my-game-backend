@@ -3,11 +3,11 @@ package query
 import "context"
 
 // Bus defines the expected behaviour from a query bus.
-type Bus[R Response] interface {
+type Bus interface {
 	// Dispatch is the method used to dispatch new queries.
-	Ask(context.Context, Query) (R, error)
+	Ask(context.Context, Query) (Response, error)
 	// Register is the method used to register a new query handler.
-	Register(Type, Handler[R])
+	Register(Type, Handler)
 }
 
 //go:generate mockery --case=snake --outpkg=querymocks --output=querymocks --name=Bus
@@ -21,6 +21,6 @@ type Query interface {
 }
 
 // Handler defines the expected behaviour from a query handler.
-type Handler[R Response] interface {
-	Handle(context.Context, Query) (R, error)
+type Handler interface {
+	Handle(context.Context, Query) (Response, error)
 }

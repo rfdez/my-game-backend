@@ -127,9 +127,6 @@ docker-release: ## Release the container with tag latest and version
 docker-clean: ## Clean the docker resources
 	@docker-compose down --remove-orphans --rmi local --volumes
 
-docker-dbclient: ## Build the dbclient container
-	@docker-compose up adminer && docker-compose down --remove-orphans --rmi local
-
 ## Help:
 help: ## Show this help.
 	@echo ''
