@@ -131,6 +131,8 @@ type Event struct {
 // EventRepository defines the expected behaviour from a course storage.
 type EventRepository interface {
 	SearchAll(ctx context.Context) ([]Event, error)
+	Find(ctx context.Context, id EventID) (Event, error)
+	Update(ctx context.Context, event Event) error
 }
 
 //go:generate mockery --case=snake --outpkg=storagemocks --output=platform/storage/storagemocks --name=EventRepository

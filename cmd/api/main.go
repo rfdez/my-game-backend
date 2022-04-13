@@ -9,9 +9,11 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
+	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/checking"
 	"github.com/rfdez/my-game-backend/internal/errors"
 	"github.com/rfdez/my-game-backend/internal/fetcher"
+	"github.com/rfdez/my-game-backend/internal/incrementer"
 	"github.com/rfdez/my-game-backend/internal/platform/bus/inmemory"
 	"github.com/rfdez/my-game-backend/internal/platform/server"
 	"github.com/rfdez/my-game-backend/internal/platform/storage/postgresql"
@@ -34,6 +36,7 @@ func main() {
 	var (
 		commandBus = inmemory.NewCommandBus()
 		queryBus   = inmemory.NewQueryBus()
+		eventBus   = inmemory.NewEventBus()
 	)
 
 	// Repositories
@@ -44,8 +47,9 @@ func main() {
 
 	// Services
 	var (
-		checkService   = checking.NewService(checkRepository)
-		fetcherService = fetcher.NewService(eventRepository)
+		checkService       = checking.NewService(checkRepository)
+		fetcherService     = fetcher.NewService(eventRepository, eventBus)
+		incrementerService = incrementer.NewService(eventRepository)
 	)
 
 	// Command Handlers
@@ -63,6 +67,9 @@ func main() {
 
 	// Register Query Handlers
 	queryBus.Register(fetcher.RandomEventQueryType, fetcherRandomEventQueryHandler)
+
+	// Event Subscribers
+	eventBus.Subscribe(mygame.EventShownEventType, fetcher.NewIncreaseEventShownOnEventShown(incrementerService))
 
 	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus)
 	if err := srv.Run(ctx); err != nil {

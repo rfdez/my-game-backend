@@ -6,6 +6,7 @@ import (
 
 	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/errors"
+	"github.com/rfdez/my-game-backend/kit/event"
 )
 
 // Service is the interface that provides the fetcher service.
@@ -15,12 +16,14 @@ type Service interface {
 
 type service struct {
 	eventRepository mygame.EventRepository
+	eventBus        event.Bus
 }
 
 // NewService creates a new instance of Service.
-func NewService(eventRepository mygame.EventRepository) Service {
+func NewService(eventRepository mygame.EventRepository, eventBus event.Bus) Service {
 	return &service{
 		eventRepository: eventRepository,
+		eventBus:        eventBus,
 	}
 }
 
@@ -51,6 +54,12 @@ func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResp
 
 	randomIndex := rand.Intn(len(eventsWithMinShown))
 	evt := eventsWithMinShown[randomIndex]
+
+	newEvent := mygame.NewEventShownEvent(evt.ID().String())
+	err = s.eventBus.Publish(ctx, []event.Event{newEvent})
+	if err != nil {
+		return RandomEventResponse{}, err
+	}
 
 	return NewRandomEventResponse(evt.ID().String(), evt.Name().String(), evt.Date().String(), evt.Keywords().Value()), nil
 }

@@ -62,3 +62,59 @@ func (r *eventRepository) SearchAll(ctx context.Context) ([]mygame.Event, error)
 
 	return events, nil
 }
+
+// Find implements the mygame.EventRepository repository.
+func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.Event, error) {
+	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
+
+	query, args := eventSQLStruct.SelectFrom(sqlEventTable).Where(sqlEvent.ID.Eq(id.String())).Build()
+
+	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
+
+	defer cancel()
+
+	var event sqlEvent
+
+	if err := r.db.QueryRowContext(ctxTimeout, query, args...).Scan(eventSQLStruct.Addr(&event)...); err != nil {
+		if err == sql.ErrNoRows {
+			return mygame.Event{}, errors.NewNotFound("event %s not found", id.String())
+		}
+
+		return mygame.Event{}, errors.WrapInternal(err, "failed to search event")
+	}
+
+	evt, err := mygame.NewEvent(
+		event.ID,
+		event.Name,
+		event.Date.Format(time.RFC3339),
+		event.Shown,
+		event.Keywords,
+	)
+	if err != nil {
+		return mygame.Event{}, errors.WrapInternal(err, "failed to create event")
+	}
+
+	return evt, nil
+}
+
+// Update implements the mygame.EventRepository repository.
+func (r *eventRepository) Update(ctx context.Context, event mygame.Event) error {
+	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
+
+	query, args := eventSQLStruct.Update(sqlEventTable).
+		Set(sqlEvent.Name, event.Name).
+		Set(sqlEvent.Date, event.Date).
+		Set(sqlEvent.Shown, event.Shown).
+		Set(sqlEvent.Keywords, event.Keywords).
+		Where(sqlEvent.ID.Eq(event.ID.String())).
+		Build()
+
+	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
+	defer cancel()
+
+	if _, err := r.db.ExecContext(ctxTimeout, query, args...); err != nil {
+		return errors.WrapInternal(err, "failed to update event")
+	}
+
+	return nil
+}
