@@ -53,6 +53,8 @@ func (name EventName) String() string {
 	return name.value
 }
 
+const RFC3339FullDate = "2006-01-02"
+
 // EventDate represents the event date.
 type EventDate struct {
 	value string
@@ -60,13 +62,13 @@ type EventDate struct {
 
 // NewEventDate instantiate VO for EventDate
 func NewEventDate(value string) (EventDate, error) {
-	date, err := time.Parse(time.RFC3339, value)
+	date, err := time.Parse(RFC3339FullDate, value)
 	if err != nil {
 		return EventDate{}, errors.NewWrongInput("invalid event date %s", value)
 	}
 
 	return EventDate{
-		value: date.Format(time.RFC3339),
+		value: date.Format(RFC3339FullDate),
 	}, nil
 }
 

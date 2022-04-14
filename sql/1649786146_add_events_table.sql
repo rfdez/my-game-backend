@@ -11,7 +11,7 @@ INSERT INTO
 VALUES
   (
     'f8b8f8b8-f8b8-f8b8-f8b8-f8b8f8b8f8b8',
-    'Event 1',
-    '2020-01-01',
-    ARRAY ['keyword1', 'keyword2']
+    'La República',
+    '2022-04-14',
+    ARRAY ['republica', 'españa', 'española']
   );

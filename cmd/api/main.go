@@ -4,39 +4,49 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/checking"
-	"github.com/rfdez/my-game-backend/internal/errors"
 	"github.com/rfdez/my-game-backend/internal/fetcher"
 	"github.com/rfdez/my-game-backend/internal/incrementer"
 	"github.com/rfdez/my-game-backend/internal/platform/bus/inmemory"
+	"github.com/rfdez/my-game-backend/internal/platform/logger/zerolog"
 	"github.com/rfdez/my-game-backend/internal/platform/server"
 	"github.com/rfdez/my-game-backend/internal/platform/storage/postgresql"
+	sqldblogger "github.com/simukti/sqldb-logger"
+	"github.com/simukti/sqldb-logger/logadapter/zerologadapter"
 )
 
 func main() {
+	// Initialize the logger.
+	logger := zerolog.NewLogger()
+
+	// Load environment variables.
 	var cfg config
 	err := envconfig.Process("", &cfg)
 	if err != nil {
-		log.Fatal(errors.WrapInternal(err, "failed to process config"))
+		logger.Fatal("failed to process config")
 	}
 
+	// Initialize the database connection.
 	psqlURI := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?%s", cfg.DbUser, cfg.DbPass, cfg.DbHost, cfg.DbPort, cfg.DbName, cfg.DbParams)
 	db, err := sql.Open("postgres", psqlURI)
 	if err != nil {
-		log.Fatal(errors.WrapInternal(err, "failed to open database"))
+		logger.Fatal("failed to open database")
 	}
+
+	// Add a logger to the database connection.
+	loggerAdapter := zerologadapter.New(logger.Logger())
+	db = sqldblogger.OpenDriver(psqlURI, db.Driver(), loggerAdapter)
 
 	// Bus
 	var (
 		commandBus = inmemory.NewCommandBus()
 		queryBus   = inmemory.NewQueryBus()
-		eventBus   = inmemory.NewEventBus()
+		eventBus   = inmemory.NewEventBus(logger)
 	)
 
 	// Repositories
@@ -71,9 +81,9 @@ func main() {
 	// Event Subscribers
 	eventBus.Subscribe(mygame.EventShownEventType, fetcher.NewIncreaseEventShownOnEventShown(incrementerService))
 
-	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus)
+	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus, logger)
 	if err := srv.Run(ctx); err != nil {
-		log.Fatal(errors.WrapInternal(err, "failed to run server"))
+		logger.Fatal("failed to run server")
 	}
 }
 

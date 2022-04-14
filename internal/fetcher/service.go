@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/errors"
@@ -29,24 +30,39 @@ func NewService(eventRepository mygame.EventRepository, eventBus event.Bus) Serv
 
 // RandomEvent returns a random event.
 func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResponse, error) {
+	if date == "" {
+		date = time.Now().Format(mygame.RFC3339FullDate)
+	}
+
 	events, err := s.eventRepository.SearchAll(ctx)
 	if err != nil {
 		return RandomEventResponse{}, err
 	}
 
 	if len(events) == 0 {
+		return RandomEventResponse{}, errors.NewNotFound("no events found")
+	}
+
+	var eventsDate []mygame.Event
+	for _, event := range events {
+		if event.Date().String() == date {
+			eventsDate = append(eventsDate, event)
+		}
+	}
+
+	if len(eventsDate) == 0 {
 		return RandomEventResponse{}, errors.NewNotFound("no events found for date %s", date)
 	}
 
-	minShown := events[0].Shown().Value()
-	for _, v := range events {
+	minShown := eventsDate[0].Shown().Value()
+	for _, v := range eventsDate {
 		if v.Shown().Value() < minShown {
 			minShown = v.Shown().Value()
 		}
 	}
 
 	var eventsWithMinShown []mygame.Event
-	for _, v := range events {
+	for _, v := range eventsDate {
 		if v.Shown().Value() == minShown {
 			eventsWithMinShown = append(eventsWithMinShown, v)
 		}

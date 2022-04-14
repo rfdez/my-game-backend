@@ -8,16 +8,18 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rfdez/my-game-backend/internal/platform/logger/zerolog"
 	"github.com/rfdez/my-game-backend/internal/platform/server/middleware/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMiddleware(t *testing.T) {
+	logger := zerolog.NewLogger()
 	// Setting up the Gin server
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
-	engine.Use(logging.Middleware())
+	engine.Use(logging.Middleware(logger))
 
 	// Setting up the output recorder
 	rescueStdout := os.Stdout

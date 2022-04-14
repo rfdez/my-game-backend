@@ -4,17 +4,20 @@ import (
 	"context"
 
 	"github.com/rfdez/my-game-backend/kit/event"
+	"github.com/rfdez/my-game-backend/kit/logger"
 )
 
 // EventBus is an in-memory implementation of the event.Bus.
 type EventBus struct {
 	handlers map[event.Type][]event.Handler
+	logger   logger.Logger
 }
 
 // NewEventBus initializes a new EventBus.
-func NewEventBus() *EventBus {
+func NewEventBus(logger logger.Logger) *EventBus {
 	return &EventBus{
 		handlers: make(map[event.Type][]event.Handler),
+		logger:   logger,
 	}
 }
 
@@ -26,8 +29,13 @@ func (b *EventBus) Publish(ctx context.Context, events []event.Event) error {
 			return nil
 		}
 
+		b.logger.Debug("Publishing event")
+
 		for _, handler := range handlers {
-			handler.Handle(ctx, evt)
+			err := handler.Handle(ctx, evt)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

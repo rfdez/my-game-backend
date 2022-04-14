@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rfdez/my-game-backend/kit/logger"
 )
 
 // Middleware is a gin.HandlerFunc that logs some information
 // of the incoming request and the consequent response.
-func Middleware() gin.HandlerFunc {
+func Middleware(logger logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
@@ -30,7 +31,7 @@ func Middleware() gin.HandlerFunc {
 		method := c.Request.Method
 		statusCode := c.Writer.Status()
 
-		fmt.Printf("[HTTP] %v | %3d | %13v | %15s | %-7s %#v\n",
+		msg := fmt.Sprintf("[HTTP] %v | %3d | %13v | %15s | %-7s %#v\n",
 			timestamp.Format("2006/01/02 - 15:04:05"),
 			statusCode,
 			latency,
@@ -38,5 +39,7 @@ func Middleware() gin.HandlerFunc {
 			method,
 			path,
 		)
+
+		logger.Info(msg)
 	}
 }

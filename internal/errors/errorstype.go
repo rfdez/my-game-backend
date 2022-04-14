@@ -61,23 +61,3 @@ func IsNotAuthorized(err error) bool {
 	var target *notAuthorized
 	return errors.As(err, &target)
 }
-
-type internal struct {
-	error
-}
-
-// NewInternal returns an error which wraps err that satisfies IsInternal().
-func NewInternal(format string, args ...interface{}) error {
-	return &internal{errors.Errorf(format, args...)}
-}
-
-// WrapInternal returns an error which wraps err that satisfies IsInternal()
-func WrapInternal(err error, format string, args ...interface{}) error {
-	return &internal{errors.Wrapf(err, format, args...)}
-}
-
-// IsInternal reports whether err was created with NewInternal or WrapInternal
-func IsInternal(err error) bool {
-	var target *internal
-	return errors.As(err, &target)
-}

@@ -22,22 +22,26 @@ func RandomHandler(queryBus query.Bus) gin.HandlerFunc {
 		resp, err := queryBus.Ask(ctx, fetcher.NewRandomEventQuery(ctx.Param("date")))
 		if err != nil {
 			if errors.IsWrongInput(err) {
-				ctx.AbortWithError(http.StatusBadRequest, errors.WrapWrongInput(err, "Bad Request"))
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Bad Request",
+				})
 				return
 			}
 
 			if errors.IsNotFound(err) {
-				ctx.AbortWithError(http.StatusNotFound, errors.WrapNotFound(err, "Not Found"))
+				ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": "Not Found",
+				})
 				return
 			}
 
-			ctx.AbortWithError(http.StatusInternalServerError, errors.WrapInternal(err, "Internal Server Error"))
+			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
 		event, ok := resp.(fetcher.RandomEventResponse)
 		if !ok {
-			ctx.AbortWithError(http.StatusInternalServerError, errors.NewInternal("Internal Server Error"))
+			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 

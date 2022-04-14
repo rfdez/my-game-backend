@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +15,7 @@ import (
 	"github.com/rfdez/my-game-backend/internal/platform/server/middleware/logging"
 	"github.com/rfdez/my-game-backend/internal/platform/server/middleware/recovery"
 	"github.com/rfdez/my-game-backend/kit/command"
+	"github.com/rfdez/my-game-backend/kit/logger"
 	"github.com/rfdez/my-game-backend/kit/query"
 )
 
@@ -28,17 +28,20 @@ type Server struct {
 	// deps
 	commandBus command.Bus
 	queryBus   query.Bus
+	logger     logger.Logger
 }
 
-func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus) (context.Context, Server) {
+func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus, logger logger.Logger) (context.Context, Server) {
 	srv := Server{
 		engine:   gin.New(),
 		httpAddr: fmt.Sprintf("%s:%d", host, port),
 
 		shutdownTimeout: shutdownTimeout,
 
+		// deps
 		commandBus: commandBus,
 		queryBus:   queryBus,
+		logger:     logger,
 	}
 
 	srv.registerRoutes()
@@ -46,7 +49,7 @@ func New(ctx context.Context, host string, port uint, shutdownTimeout time.Durat
 }
 
 func (s *Server) registerRoutes() {
-	s.engine.Use(recovery.Middleware(), logging.Middleware())
+	s.engine.Use(recovery.Middleware(), logging.Middleware(s.logger))
 
 	// Health checks
 	s.engine.GET("/ping", checks.PingHandler())
@@ -57,7 +60,7 @@ func (s *Server) registerRoutes() {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	log.Println("Server running on", s.httpAddr)
+	s.logger.Info(fmt.Sprintf("Server running on %s", s.httpAddr))
 
 	srv := &http.Server{
 		Addr:    s.httpAddr,
@@ -66,7 +69,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("server shut down", err)
+			s.logger.Fatal(fmt.Sprintf("Server error: %s", err))
 		}
 	}()
 
@@ -74,7 +77,7 @@ func (s *Server) Run(ctx context.Context) error {
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 
-	log.Println("Server shutting down...")
+	s.logger.Info("Server shutting down...")
 
 	return srv.Shutdown(ctxShutDown)
 }
