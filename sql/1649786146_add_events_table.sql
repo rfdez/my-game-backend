@@ -12,6 +12,6 @@ VALUES
   (
     'f8b8f8b8-f8b8-f8b8-f8b8-f8b8f8b8f8b8',
     'La República',
-    '2022-04-14',
+    '2022-04-15',
     ARRAY ['republica', 'españa', 'española']
   );

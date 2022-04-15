@@ -2,6 +2,7 @@ package inmemory
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rfdez/my-game-backend/kit/event"
 	"github.com/rfdez/my-game-backend/kit/logger"
@@ -29,7 +30,7 @@ func (b *EventBus) Publish(ctx context.Context, events []event.Event) error {
 			return nil
 		}
 
-		b.logger.Debug("Publishing event")
+		b.logger.Info(fmt.Sprintf("[Event Bus] publishing event %s", evt.Type()))
 
 		for _, handler := range handlers {
 			err := handler.Handle(ctx, evt)

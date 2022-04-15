@@ -21,6 +21,6 @@ func (e EventShownEvent) Type() event.Type {
 	return EventShownEventType
 }
 
-func (e EventShownEvent) CourseID() string {
+func (e EventShownEvent) EventID() string {
 	return e.id
 }

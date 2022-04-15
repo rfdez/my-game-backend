@@ -7,3 +7,5 @@ type Logger interface {
 	Error(string)
 	Fatal(string)
 }
+
+//go:generate mockery --case=snake --outpkg=loggermocks --output=loggermocks --name=Logger

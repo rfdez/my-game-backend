@@ -25,5 +25,5 @@ func (e IncreaseEventShownOnEventShown) Handle(ctx context.Context, evt event.Ev
 		return errors.New("unexpected event")
 	}
 
-	return e.incrementerService.IncreaseEventShown(ctx, eventShownEvt.ID())
+	return e.incrementerService.IncreaseEventShown(ctx, eventShownEvt.EventID())
 }

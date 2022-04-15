@@ -3,20 +3,21 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/checks"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/events"
-	"github.com/rfdez/my-game-backend/internal/platform/server/middleware/logging"
-	"github.com/rfdez/my-game-backend/internal/platform/server/middleware/recovery"
 	"github.com/rfdez/my-game-backend/kit/command"
-	"github.com/rfdez/my-game-backend/kit/logger"
 	"github.com/rfdez/my-game-backend/kit/query"
+	"github.com/rs/zerolog"
 )
 
 type Server struct {
@@ -28,10 +29,9 @@ type Server struct {
 	// deps
 	commandBus command.Bus
 	queryBus   query.Bus
-	logger     logger.Logger
 }
 
-func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus, logger logger.Logger) (context.Context, Server) {
+func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, commandBus command.Bus, queryBus query.Bus) (context.Context, Server) {
 	srv := Server{
 		engine:   gin.New(),
 		httpAddr: fmt.Sprintf("%s:%d", host, port),
@@ -41,7 +41,6 @@ func New(ctx context.Context, host string, port uint, shutdownTimeout time.Durat
 		// deps
 		commandBus: commandBus,
 		queryBus:   queryBus,
-		logger:     logger,
 	}
 
 	srv.registerRoutes()
@@ -49,7 +48,20 @@ func New(ctx context.Context, host string, port uint, shutdownTimeout time.Durat
 }
 
 func (s *Server) registerRoutes() {
-	s.engine.Use(recovery.Middleware(), logging.Middleware(s.logger))
+	s.engine.Use(gin.Recovery())
+	s.engine.Use(logger.SetLogger(
+		logger.WithLogger(func(c *gin.Context, out io.Writer, latency time.Duration) zerolog.Logger {
+			consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+			return zerolog.New(consoleWriter).With().
+				Timestamp().
+				Int("statusCode", c.Writer.Status()).
+				Dur("latency", latency).
+				Str("clientIP", c.ClientIP()).
+				Str("method", c.Request.Method).
+				Str("path", c.Request.URL.Path).
+				Logger()
+		}),
+	))
 
 	// Health checks
 	s.engine.GET("/ping", checks.PingHandler())
@@ -60,7 +72,7 @@ func (s *Server) registerRoutes() {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	s.logger.Info(fmt.Sprintf("Server running on %s", s.httpAddr))
+	log.Printf("Server running on %s", s.httpAddr)
 
 	srv := &http.Server{
 		Addr:    s.httpAddr,
@@ -69,7 +81,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Fatal(fmt.Sprintf("Server error: %s", err))
+			log.Fatal(err)
 		}
 	}()
 
@@ -77,7 +89,7 @@ func (s *Server) Run(ctx context.Context) error {
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 
-	s.logger.Info("Server shutting down...")
+	log.Println("Server shutting down...")
 
 	return srv.Shutdown(ctxShutDown)
 }

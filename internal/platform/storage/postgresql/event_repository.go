@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
-	"github.com/lib/pq"
 	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/errors"
 )
@@ -28,7 +27,9 @@ func NewEventRepository(db *sql.DB, dbTimeout time.Duration) *eventRepository {
 func (r *eventRepository) SearchAll(ctx context.Context) ([]mygame.Event, error) {
 	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
 
-	query, args := eventSQLStruct.SelectFrom(sqlEventTable).Build()
+	sb := eventSQLStruct.SelectFrom(sqlEventTable)
+
+	query, args := sb.BuildWithFlavor(sqlbuilder.PostgreSQL)
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
@@ -68,9 +69,9 @@ func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.E
 	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
 
 	sb := eventSQLStruct.SelectFrom(sqlEventTable)
-	sb.Where(sb.Equal("id", id.String()))
+	sb.Where(sb.E("id", id.String()))
 
-	query, args := sb.Build()
+	query, args := sb.BuildWithFlavor(sqlbuilder.PostgreSQL)
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
@@ -101,17 +102,20 @@ func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.E
 // Update implements the mygame.EventRepository repository.
 func (r *eventRepository) Update(ctx context.Context, event mygame.Event) error {
 	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
-	ub := eventSQLStruct.Flavor.NewUpdateBuilder()
-	ub.Update(sqlEventTable)
-	ub.Set(
-		ub.Assign("name", event.Name().String()),
-		ub.Assign("date", event.Date().String()),
-		ub.Assign("shown", event.Shown().Value()),
-		ub.Assign("keywords", pq.Array(event.Keywords().Value())),
-	)
-	ub.Where(ub.Equal("id", event.ID().String()))
 
-	query, args := ub.Build()
+	eventDate, _ := time.Parse(mygame.RFC3339FullDate, event.Date().String())
+	newEvent := &sqlEvent{
+		ID:       event.ID().String(),
+		Name:     event.Name().String(),
+		Date:     eventDate,
+		Shown:    event.Shown().Value(),
+		Keywords: event.Keywords().Value(),
+	}
+
+	ub := eventSQLStruct.Update(sqlEventTable, newEvent)
+	ub.Where(ub.E("id", event.ID().String()))
+
+	query, args := ub.BuildWithFlavor(sqlbuilder.PostgreSQL)
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
 	defer cancel()
