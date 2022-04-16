@@ -27,5 +27,3 @@ coverage.xml
 profile.cov
 yamllint-checkstyle.xml
 go_test.xml
-
-tmp/

@@ -40,28 +40,21 @@ services:
       - '8080:8080'
   dev-app:
     <<: *default-app
-    container_name: my-game-dev
-    image: cosmtrek/air
-    ports:
-      - '8080:8080'
-    volumes:
-      - ./:/app/
-    working_dir: /app
-  debug-app:
-    <<: *default-app
     build:
       context: .
       dockerfile: Dockerfile
-      target: debug
+      target: dev
+    container_name: my-game-dev
     cap_add:
       - SYS_PTRACE
-    container_name: my-game-debug
-    image: rfdez/my-game:debug
+    image: rfdez/my-game:dev
     ports:
       - '8080:8080'
-      - '40000:40000'
+      - '2345:2345'
     security_opt:
       - "seccomp:unconfined"
+    volumes:
+      - .:/app:rw,delegated
   db:
     container_name: my-game-db
     environment:

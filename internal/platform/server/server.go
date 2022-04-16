@@ -100,6 +100,8 @@ func serverContext(ctx context.Context) context.Context {
 	signal.Notify(c, os.Interrupt)
 	// sigterm signal sent from kubernetes
 	signal.Notify(c, syscall.SIGTERM)
+	// context that is canceled when interrupt signal is sent
+	signal.Notify(c, syscall.SIGINT)
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		<-c

@@ -1,4 +1,4 @@
-.PHONY: all default build clean vendor watch debug start test coverage test-summary lint lint-dockerfile lint-go lint-yaml format examine fix docker-build docker-release help
+.PHONY: all default build clean vendor start dev test coverage test-summary lint lint-dockerfile lint-go lint-yaml format examine fix docker-build docker-release help
 
 # Shell to use for running scripts
 SHELL := $(shell which bash)
@@ -47,14 +47,11 @@ clean: ## Remove build related file
 vendor: ## Copy of all packages needed to support builds and tests in the vendor directory
 	@docker run --rm -v $(PWD):/app -w /app golang:1.18 sh -c "$(GOCMD) mod vendor"
 
-watch: ## Run the code with cosmtrek/air to have automatic reload on changes
-	@docker-compose up dev-app && docker-compose down --remove-orphans --rmi local
-
-debug: ## Run the code with dlv to have a debug session
-	@docker-compose up --build debug-app && docker-compose down --remove-orphans --rmi local
-
 start: ## Run the code with docker-compose
 	@docker-compose up --build app && docker-compose down --remove-orphans --rmi local
+
+dev: ## Run the code with docker-compose as development mode
+	@docker-compose up --build dev-app && docker-compose down --remove-orphans --rmi local
 
 ## Test:
 test: ## Run the tests
@@ -111,7 +108,7 @@ examine: ## Examine the code with govet
 	@docker run --rm -v $(PWD):/app -w /app golang:1.18 sh -c "$(GOVET) ./..."
 
 fix: ## Fix the code with gofix
-	@docker run --rm -v $(PWD):/app -w /app golang:1.18 sh -c "$() ./..."
+	@docker run --rm -v $(PWD):/app -w /app golang:1.18 sh -c "$(GOFIX) ./..."
 
 ## Docker:
 docker-build: ## Use the dockerfile to build the container

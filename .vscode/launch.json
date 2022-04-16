@@ -10,7 +10,10 @@
       "request": "attach",
       "mode": "remote",
       "host": "localhost",
-      "port": 40000,
+      "port": 2345,
+      "showLog": true,
+      "apiVersion": 2,
+      "trace": "verbose",
       "substitutePath": [
         {
           "from": "${workspaceFolder}",
