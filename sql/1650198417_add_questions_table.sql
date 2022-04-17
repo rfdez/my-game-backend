@@ -9,7 +9,7 @@ INSERT INTO
   questions (id, text, round, event_id)
 VALUES
   (
-    'f8b8f8b8-f8b8-f8b8-f8b8-f8b8f8b8f8b8',
+    'e4f84369-6268-4e12-89e1-642f5eb1ede3',
     '¿Sucedió en España?',
     1,
     (

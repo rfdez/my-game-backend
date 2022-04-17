@@ -10,6 +10,7 @@ import (
 const (
 	RandomEventQueryType           query.Type = "command.fetcher.random_event"
 	EventQuestionsByRoundQueryType query.Type = "command.fetcher.question_by_event_id"
+	QuestionAnswerQueryType        query.Type = "command.fetcher.question_answer"
 )
 
 // RandomEventQuery is a query to get a random event.
@@ -104,4 +105,48 @@ func (h EventQuestionsByRoundQueryHandler) Handle(ctx context.Context, q query.Q
 	}
 
 	return h.service.EventQuestionsByRound(ctx, queryR.EventID(), queryR.Round())
+}
+
+// QuestionAnswerQuery is a query to answer a question.
+type QuestionAnswerQuery struct {
+	questionID string
+}
+
+// NewQuestionAnswerQuery creates a new question answer query.
+func NewQuestionAnswerQuery(questionID string) QuestionAnswerQuery {
+	return QuestionAnswerQuery{
+		questionID: questionID,
+	}
+}
+
+// Type returns the type of the query.
+func (q QuestionAnswerQuery) Type() query.Type {
+	return QuestionAnswerQueryType
+}
+
+// QuestionID returns the question id.
+func (q QuestionAnswerQuery) QuestionID() string {
+	return q.questionID
+}
+
+// QuestionAnswerQueryHandler is a query handler for QuestionAnswerQuery.
+type QuestionAnswerQueryHandler struct {
+	service Service
+}
+
+// NewQuestionAnswerQueryHandler creates a new instance of QuestionAnswerQueryHandler.
+func NewQuestionAnswerQueryHandler(service Service) QuestionAnswerQueryHandler {
+	return QuestionAnswerQueryHandler{
+		service: service,
+	}
+}
+
+// Handle implements the query.Handler interface.
+func (h QuestionAnswerQueryHandler) Handle(ctx context.Context, q query.Query) (query.Response, error) {
+	queryR, ok := q.(QuestionAnswerQuery)
+	if !ok {
+		return nil, errors.New("invalid query type")
+	}
+
+	return h.service.QuestionAnswer(ctx, queryR.QuestionID())
 }

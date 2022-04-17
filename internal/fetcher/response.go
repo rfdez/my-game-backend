@@ -85,3 +85,34 @@ func NewEventQuestionsByRoundResponse(questions []QuestionResponse) EventQuestio
 func (r EventQuestionsByRoundResponse) Questions() []QuestionResponse {
 	return r.questions
 }
+
+// AnswerResponse is the response of an answer.
+type AnswerResponse struct {
+	id         string
+	text       string
+	questionID string
+}
+
+// NewAnswerResponse creates a new instance of AnswerResponse.
+func NewAnswerResponse(id, text, questionID string) AnswerResponse {
+	return AnswerResponse{
+		id:         id,
+		text:       text,
+		questionID: questionID,
+	}
+}
+
+// ID returns the id of the answer.
+func (a AnswerResponse) ID() string {
+	return a.id
+}
+
+// Text returns the text of the answer.
+func (a AnswerResponse) Text() string {
+	return a.text
+}
+
+// QuestionID returns the id of the question.
+func (a AnswerResponse) QuestionID() string {
+	return a.questionID
+}

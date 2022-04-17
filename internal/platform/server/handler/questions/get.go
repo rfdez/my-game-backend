@@ -16,8 +16,8 @@ type eventQuestionsByRoundResponse struct {
 	EventID string `json:"event_id"`
 }
 
-// GetEventQuestionsByRound returns an HTTP handler to perform health checks.
-func GetEventQuestionsByRound(queryBus query.Bus) gin.HandlerFunc {
+// GetEventQuestionsByRoundHandler returns an HTTP handler to perform health checks.
+func GetEventQuestionsByRoundHandler(queryBus query.Bus) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		round, err := strconv.Atoi(ctx.Query("round"))
 		if err != nil {

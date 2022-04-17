@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/rfdez/my-game-backend/internal/platform/server/handler/answers"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/checks"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/events"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/questions"
@@ -72,7 +73,8 @@ func (s *Server) registerRoutes() {
 	s.engine.GET("/events/random", events.RandomHandler(s.queryBus))
 
 	// Event Questions
-	s.engine.GET("/events/:id/questions", questions.GetEventQuestionsByRound(s.queryBus))
+	s.engine.GET("/events/:id/questions", questions.GetEventQuestionsByRoundHandler(s.queryBus))
+	s.engine.GET("/questions/:id/answers", answers.GetQuestionAnswerHandler(s.queryBus))
 }
 
 func (s *Server) Run(ctx context.Context) error {

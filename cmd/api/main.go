@@ -59,12 +59,13 @@ func main() {
 		checkRepository    = postgresql.NewCheckRepository(db, cfg.DbTimeout)
 		eventRepository    = postgresql.NewEventRepository(db, cfg.DbTimeout)
 		questionRepository = postgresql.NewQuestionRepository(db, cfg.DbTimeout)
+		answerRepository   = postgresql.NewAnswerRepository(db, cfg.DbTimeout)
 	)
 
 	// Services
 	var (
 		checkService       = checking.NewService(checkRepository)
-		fetcherService     = fetcher.NewService(eventRepository, questionRepository, eventBus)
+		fetcherService     = fetcher.NewService(eventRepository, questionRepository, answerRepository, eventBus)
 		incrementerService = incrementer.NewService(eventRepository)
 	)
 
@@ -80,11 +81,13 @@ func main() {
 	var (
 		fetcherRandomEventQueryHandler           = fetcher.NewRandomEventQueryHandler(fetcherService)
 		fetcherEventQuestionsByRoundQueryHandler = fetcher.NewEventQuestionsByRoundQueryHandler(fetcherService)
+		fetcherQuestionAnswerQueryHandler        = fetcher.NewQuestionAnswerQueryHandler(fetcherService)
 	)
 
 	// Register Query Handlers
 	queryBus.Register(fetcher.RandomEventQueryType, fetcherRandomEventQueryHandler)
 	queryBus.Register(fetcher.EventQuestionsByRoundQueryType, fetcherEventQuestionsByRoundQueryHandler)
+	queryBus.Register(fetcher.QuestionAnswerQueryType, fetcherQuestionAnswerQueryHandler)
 
 	// Event Subscribers
 	eventBus.Subscribe(mygame.EventShownEventType, fetcher.NewIncreaseEventShownOnEventShown(incrementerService))

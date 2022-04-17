@@ -14,19 +14,22 @@ import (
 type Service interface {
 	RandomEvent(context.Context, string) (RandomEventResponse, error)
 	EventQuestionsByRound(context.Context, string, int) (EventQuestionsByRoundResponse, error)
+	QuestionAnswer(context.Context, string) (AnswerResponse, error)
 }
 
 type service struct {
 	eventRepository    mygame.EventRepository
 	questionRepository mygame.QuestionRepository
+	answerRepository   mygame.AnswerRepository
 	eventBus           event.Bus
 }
 
 // NewService creates a new instance of Service.
-func NewService(eventRepository mygame.EventRepository, questionRepository mygame.QuestionRepository, eventBus event.Bus) Service {
+func NewService(eventRepository mygame.EventRepository, questionRepository mygame.QuestionRepository, answerRepository mygame.AnswerRepository, eventBus event.Bus) Service {
 	return &service{
 		eventRepository:    eventRepository,
 		questionRepository: questionRepository,
+		answerRepository:   answerRepository,
 		eventBus:           eventBus,
 	}
 }
@@ -112,4 +115,19 @@ func (s *service) EventQuestionsByRound(ctx context.Context, id string, round in
 	}
 
 	return NewEventQuestionsByRoundResponse(questionsResponse), nil
+}
+
+// QuestionAnswer returns the answer.
+func (s *service) QuestionAnswer(ctx context.Context, questionID string) (AnswerResponse, error) {
+	questionIDVO, err := mygame.NewQuestionID(questionID)
+	if err != nil {
+		return AnswerResponse{}, err
+	}
+
+	answer, err := s.answerRepository.FindByQuestionID(ctx, questionIDVO)
+	if err != nil {
+		return AnswerResponse{}, err
+	}
+
+	return NewAnswerResponse(answer.ID().String(), answer.Text().String(), answer.QuestionID().String()), nil
 }
