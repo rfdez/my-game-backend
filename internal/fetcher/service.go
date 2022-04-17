@@ -31,7 +31,7 @@ func NewService(eventRepository mygame.EventRepository, eventBus event.Bus) Serv
 // RandomEvent returns a random event.
 func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResponse, error) {
 	if date == "" {
-		date = time.Now().Format(mygame.RFC3339FullDate)
+		date = time.Now().Format(mygame.EventDateRFC3339)
 	}
 
 	events, err := s.eventRepository.SearchAll(ctx)

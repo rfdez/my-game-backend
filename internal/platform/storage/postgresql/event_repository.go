@@ -50,7 +50,7 @@ func (r *eventRepository) SearchAll(ctx context.Context) ([]mygame.Event, error)
 		evt, err := mygame.NewEvent(
 			event.ID,
 			event.Name,
-			event.Date.Format(mygame.RFC3339FullDate),
+			event.Date.Format(mygame.EventDateRFC3339),
 			event.Shown,
 			event.Keywords,
 		)
@@ -88,7 +88,7 @@ func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.E
 	evt, err := mygame.NewEvent(
 		event.ID,
 		event.Name,
-		event.Date.Format(mygame.RFC3339FullDate),
+		event.Date.Format(mygame.EventDateRFC3339),
 		event.Shown,
 		event.Keywords,
 	)
@@ -103,11 +103,11 @@ func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.E
 func (r *eventRepository) Update(ctx context.Context, event mygame.Event) error {
 	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
 
-	eventDate, _ := time.Parse(mygame.RFC3339FullDate, event.Date().String())
+	// eventDate, _ := time.Parse(mygame.EventDateRFC3339, event.Date().String())
 	newEvent := &sqlEvent{
 		ID:       event.ID().String(),
 		Name:     event.Name().String(),
-		Date:     eventDate,
+		Date:     event.Date().Value(),
 		Shown:    event.Shown().Value(),
 		Keywords: event.Keywords().Value(),
 	}

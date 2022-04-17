@@ -8,8 +8,6 @@ import (
 	"github.com/rfdez/my-game-backend/internal/errors"
 )
 
-var ErrInvalidEventID = errors.NewWrongInput("invalid event id")
-
 // EventID represents the event unique identifier.
 type EventID struct {
 	value string
@@ -53,28 +51,33 @@ func (name EventName) String() string {
 	return name.value
 }
 
-const RFC3339FullDate = "2006-01-02"
+const EventDateRFC3339 = "2006-01-02"
 
 // EventDate represents the event date.
 type EventDate struct {
-	value string
+	value time.Time
 }
 
 // NewEventDate instantiate VO for EventDate
 func NewEventDate(value string) (EventDate, error) {
-	date, err := time.Parse(RFC3339FullDate, value)
+	date, err := time.Parse(EventDateRFC3339, value)
 	if err != nil {
 		return EventDate{}, errors.NewWrongInput("invalid event date %s", value)
 	}
 
 	return EventDate{
-		value: date.Format(RFC3339FullDate),
+		value: date,
 	}, nil
+}
+
+// Value returns the event date value.
+func (v EventDate) Value() time.Time {
+	return v.value
 }
 
 // String type converts the EventDate into string.
 func (date EventDate) String() string {
-	return date.value
+	return date.value.Format(EventDateRFC3339)
 }
 
 // EventShown represents the event shown.
