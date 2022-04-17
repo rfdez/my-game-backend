@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/checks"
 	"github.com/rfdez/my-game-backend/internal/platform/server/handler/events"
+	"github.com/rfdez/my-game-backend/internal/platform/server/handler/questions"
 	"github.com/rfdez/my-game-backend/kit/command"
 	"github.com/rfdez/my-game-backend/kit/query"
 	"github.com/rs/zerolog"
@@ -69,6 +70,9 @@ func (s *Server) registerRoutes() {
 
 	// Events
 	s.engine.GET("/events/random", events.RandomHandler(s.queryBus))
+
+	// Event Questions
+	s.engine.GET("/events/:id/questions", questions.GetEventQuestionsByRound(s.queryBus))
 }
 
 func (s *Server) Run(ctx context.Context) error {

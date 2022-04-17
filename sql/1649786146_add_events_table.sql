@@ -10,8 +10,11 @@ INSERT INTO
   events (id, name, date, keywords)
 VALUES
   (
-    'f8b8f8b8-f8b8-f8b8-f8b8-f8b8f8b8f8b8',
+    'edfc45ac-bc28-46fa-bf32-555725781964',
     'La República',
-    '2022-04-15',
+    (
+      SELECT
+        CURRENT_DATE
+    ),
     ARRAY ['republica', 'españa', 'española']
   );

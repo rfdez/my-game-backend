@@ -12,19 +12,22 @@ import (
 
 // Service is the interface that provides the fetcher service.
 type Service interface {
-	RandomEvent(ctx context.Context, date string) (RandomEventResponse, error)
+	RandomEvent(context.Context, string) (RandomEventResponse, error)
+	EventQuestionsByRound(context.Context, string, int) (EventQuestionsByRoundResponse, error)
 }
 
 type service struct {
-	eventRepository mygame.EventRepository
-	eventBus        event.Bus
+	eventRepository    mygame.EventRepository
+	questionRepository mygame.QuestionRepository
+	eventBus           event.Bus
 }
 
 // NewService creates a new instance of Service.
-func NewService(eventRepository mygame.EventRepository, eventBus event.Bus) Service {
+func NewService(eventRepository mygame.EventRepository, questionRepository mygame.QuestionRepository, eventBus event.Bus) Service {
 	return &service{
-		eventRepository: eventRepository,
-		eventBus:        eventBus,
+		eventRepository:    eventRepository,
+		questionRepository: questionRepository,
+		eventBus:           eventBus,
 	}
 }
 
@@ -78,4 +81,35 @@ func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResp
 	}
 
 	return NewRandomEventResponse(evt.ID().String(), evt.Name().String(), evt.Date().String(), evt.Keywords().Value()), nil
+}
+
+// EventQuestionsByRound returns the questions by round.
+func (s *service) EventQuestionsByRound(ctx context.Context, id string, round int) (EventQuestionsByRoundResponse, error) {
+	eventID, err := mygame.NewEventID(id)
+	if err != nil {
+		return EventQuestionsByRoundResponse{}, err
+	}
+
+	questions, err := s.questionRepository.SearchByEventID(ctx, eventID)
+	if err != nil {
+		return EventQuestionsByRoundResponse{}, err
+	}
+
+	var questionsByRound []mygame.Question
+	for _, v := range questions {
+		if v.Round().Value() == round {
+			questionsByRound = append(questionsByRound, v)
+		}
+	}
+
+	if len(questionsByRound) == 0 {
+		return EventQuestionsByRoundResponse{}, errors.NewNotFound("no questions found for event %s and round %d", id, round)
+	}
+
+	questionsResponse := make([]QuestionResponse, len(questionsByRound))
+	for i, v := range questionsByRound {
+		questionsResponse[i] = NewQuestionResponse(v.ID().String(), v.Text().String(), v.EventID().String())
+	}
+
+	return NewEventQuestionsByRoundResponse(questionsResponse), nil
 }
