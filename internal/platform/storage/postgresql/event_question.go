@@ -1,11 +1,11 @@
 package postgresql
 
 const (
-	sqlAnswerTable = "answers"
+	sqlEventQuestionTable = "event_questions"
 )
 
-type sqlAnswer struct {
+type sqlEventQuestion struct {
 	EventID    string `db:"event_id"`
 	QuestionID string `db:"question_id"`
-	Text       string `db:"text"`
+	Round      int    `db:"round"`
 }

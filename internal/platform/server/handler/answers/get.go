@@ -9,27 +9,27 @@ import (
 	"github.com/rfdez/my-game-backend/kit/query"
 )
 
-type QuestionAnswerResponse struct {
-	ID         string `json:"id"`
-	Text       string `json:"text"`
+type eventQuestionAnswerResponse struct {
+	EventID    string `json:"event_id"`
 	QuestionID string `json:"question_id"`
+	Text       string `json:"text"`
 }
 
-// GetQuestionAnswerHandler returns an HTTP handler to perform health checks.
-func GetQuestionAnswerHandler(queryBus query.Bus) gin.HandlerFunc {
+// GetEventQuestionAnswerHandler returns an HTTP handler to perform health checks.
+func GetEventQuestionAnswerHandler(queryBus query.Bus) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		resp, err := queryBus.Ask(ctx, fetcher.NewQuestionAnswerQuery(ctx.Param("id")))
+		resp, err := queryBus.Ask(ctx, fetcher.NewEventQuestionAnswerQuery(ctx.Param("event_id"), ctx.Param("question_id")))
 		if err != nil {
 			if errors.IsWrongInput(err) {
 				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"message": "Bad Request",
+					"message": err.Error(),
 				})
 				return
 			}
 
 			if errors.IsNotFound(err) {
 				ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					"message": "Not Found",
+					"message": err.Error(),
 				})
 				return
 			}
@@ -44,10 +44,10 @@ func GetQuestionAnswerHandler(queryBus query.Bus) gin.HandlerFunc {
 			return
 		}
 
-		ctx.JSON(http.StatusOK, QuestionAnswerResponse{
-			ID:         answer.ID(),
-			Text:       answer.Text(),
+		ctx.JSON(http.StatusOK, eventQuestionAnswerResponse{
+			EventID:    answer.EventID(),
 			QuestionID: answer.QuestionID(),
+			Text:       answer.Text(),
 		})
 	}
 }

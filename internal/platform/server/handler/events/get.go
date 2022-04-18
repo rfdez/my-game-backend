@@ -23,14 +23,14 @@ func RandomHandler(queryBus query.Bus) gin.HandlerFunc {
 		if err != nil {
 			if errors.IsWrongInput(err) {
 				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"message": "Bad Request",
+					"message": err.Error(),
 				})
 				return
 			}
 
 			if errors.IsNotFound(err) {
 				ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					"message": "Not Found",
+					"message": err.Error(),
 				})
 				return
 			}

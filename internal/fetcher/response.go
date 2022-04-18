@@ -38,19 +38,48 @@ func (r RandomEventResponse) Keywords() []string {
 	return r.keywords
 }
 
+// EventQuestionResponse is the response of the event questions by round.
+type EventQuestionResponse struct {
+	eventID    string
+	questionID string
+	round      int
+}
+
+// NewEventQuestionResponse creates a new instance of EventQuestionResponse.
+func NewEventQuestionResponse(eventID, questionID string, round int) EventQuestionResponse {
+	return EventQuestionResponse{
+		eventID:    eventID,
+		questionID: questionID,
+		round:      round,
+	}
+}
+
+// EventID returns the id of the event.
+func (eq EventQuestionResponse) EventID() string {
+	return eq.eventID
+}
+
+// QuestionID returns the id of the question.
+func (eq EventQuestionResponse) QuestionID() string {
+	return eq.questionID
+}
+
+// Round returns the round of the question.
+func (eq EventQuestionResponse) Round() int {
+	return eq.round
+}
+
 // QuestionResponse is the response of a list of questions.
 type QuestionResponse struct {
-	id      string
-	text    string
-	eventID string
+	id   string
+	text string
 }
 
 // NewQuestionResponse creates a new instance of QuestionResponse.
-func NewQuestionResponse(id, text, eventID string) QuestionResponse {
+func NewQuestionResponse(id, text string) QuestionResponse {
 	return QuestionResponse{
-		id:      id,
-		text:    text,
-		eventID: eventID,
+		id:   id,
+		text: text,
 	}
 }
 
@@ -62,11 +91,6 @@ func (q QuestionResponse) ID() string {
 // Text returns the text of the question.
 func (q QuestionResponse) Text() string {
 	return q.text
-}
-
-// EvenID returns the id of the event.
-func (q QuestionResponse) EventID() string {
-	return q.eventID
 }
 
 // EventQuestionsByRoundResponse is the response of the questions by round.
@@ -88,31 +112,31 @@ func (r EventQuestionsByRoundResponse) Questions() []QuestionResponse {
 
 // AnswerResponse is the response of an answer.
 type AnswerResponse struct {
-	id         string
-	text       string
+	eventID    string
 	questionID string
+	text       string
 }
 
 // NewAnswerResponse creates a new instance of AnswerResponse.
-func NewAnswerResponse(id, text, questionID string) AnswerResponse {
+func NewAnswerResponse(eventID, questionID, text string) AnswerResponse {
 	return AnswerResponse{
-		id:         id,
-		text:       text,
+		eventID:    eventID,
 		questionID: questionID,
+		text:       text,
 	}
 }
 
-// ID returns the id of the answer.
-func (a AnswerResponse) ID() string {
-	return a.id
-}
-
-// Text returns the text of the answer.
-func (a AnswerResponse) Text() string {
-	return a.text
+// EventID returns the id of the answer.
+func (a AnswerResponse) EventID() string {
+	return a.eventID
 }
 
 // QuestionID returns the id of the question.
 func (a AnswerResponse) QuestionID() string {
 	return a.questionID
+}
+
+// Text returns the text of the answer.
+func (a AnswerResponse) Text() string {
+	return a.text
 }

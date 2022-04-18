@@ -51,78 +51,14 @@ func (r *eventRepository) SearchAll(ctx context.Context) ([]mygame.Event, error)
 			event.ID,
 			event.Name,
 			event.Date.Format(mygame.EventDateRFC3339),
-			event.Shown,
 			event.Keywords,
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create event")
+			return nil, err
 		}
 
 		events = append(events, evt)
 	}
 
 	return events, nil
-}
-
-// Find implements the mygame.EventRepository repository.
-func (r *eventRepository) Find(ctx context.Context, id mygame.EventID) (mygame.Event, error) {
-	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
-
-	sb := eventSQLStruct.SelectFrom(sqlEventTable)
-	sb.Where(sb.E("id", id.String()))
-
-	query, args := sb.BuildWithFlavor(sqlbuilder.PostgreSQL)
-
-	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
-	defer cancel()
-
-	var event sqlEvent
-	if err := r.db.QueryRowContext(ctxTimeout, query, args...).Scan(eventSQLStruct.Addr(&event)...); err != nil {
-		if err == sql.ErrNoRows {
-			return mygame.Event{}, errors.NewNotFound("event %s not found", id.String())
-		}
-
-		return mygame.Event{}, errors.Wrap(err, "failed to search event")
-	}
-
-	evt, err := mygame.NewEvent(
-		event.ID,
-		event.Name,
-		event.Date.Format(mygame.EventDateRFC3339),
-		event.Shown,
-		event.Keywords,
-	)
-	if err != nil {
-		return mygame.Event{}, errors.Wrap(err, "failed to create event")
-	}
-
-	return evt, nil
-}
-
-// Update implements the mygame.EventRepository repository.
-func (r *eventRepository) Update(ctx context.Context, event mygame.Event) error {
-	eventSQLStruct := sqlbuilder.NewStruct(new(sqlEvent))
-
-	// eventDate, _ := time.Parse(mygame.EventDateRFC3339, event.Date().String())
-	newEvent := &sqlEvent{
-		ID:       event.ID().String(),
-		Name:     event.Name().String(),
-		Date:     event.Date().Value(),
-		Shown:    event.Shown().Value(),
-		Keywords: event.Keywords().Value(),
-	}
-
-	ub := eventSQLStruct.Update(sqlEventTable, newEvent)
-	ub.Where(ub.E("id", event.ID().String()))
-
-	query, args := ub.BuildWithFlavor(sqlbuilder.PostgreSQL)
-
-	ctxTimeout, cancel := context.WithTimeout(ctx, r.dbTimeout)
-	defer cancel()
-
-	if _, err := r.db.ExecContext(ctxTimeout, query, args...); err != nil {
-		return errors.Wrap(err, "failed to update event")
-	}
-
-	return nil
 }

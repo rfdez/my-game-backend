@@ -10,12 +10,9 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
-	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/checking"
 	"github.com/rfdez/my-game-backend/internal/fetcher"
-	"github.com/rfdez/my-game-backend/internal/incrementer"
 	"github.com/rfdez/my-game-backend/internal/platform/bus/inmemory"
-	zerologlogger "github.com/rfdez/my-game-backend/internal/platform/logger/zerolog"
 	"github.com/rfdez/my-game-backend/internal/platform/server"
 	"github.com/rfdez/my-game-backend/internal/platform/storage/postgresql"
 	"github.com/rs/zerolog"
@@ -45,28 +42,27 @@ func main() {
 	db = sqldblogger.OpenDriver(psqlURI, db.Driver(), loggerAdapter, sqldblogger.WithMinimumLevel(sqldblogger.LevelInfo))
 
 	// Initialize the logger.
-	logger := zerologlogger.NewLogger()
+	// logger := zerologlogger.NewLogger()
 
 	// Bus
 	var (
 		commandBus = inmemory.NewCommandBus()
 		queryBus   = inmemory.NewQueryBus()
-		eventBus   = inmemory.NewEventBus(logger)
 	)
 
 	// Repositories
 	var (
-		checkRepository    = postgresql.NewCheckRepository(db, cfg.DbTimeout)
-		eventRepository    = postgresql.NewEventRepository(db, cfg.DbTimeout)
-		questionRepository = postgresql.NewQuestionRepository(db, cfg.DbTimeout)
-		answerRepository   = postgresql.NewAnswerRepository(db, cfg.DbTimeout)
+		checkRepository         = postgresql.NewCheckRepository(db, cfg.DbTimeout)
+		eventRepository         = postgresql.NewEventRepository(db, cfg.DbTimeout)
+		eventQuestionRepository = postgresql.NewEventQuestionRepository(db, cfg.DbTimeout)
+		questionRepository      = postgresql.NewQuestionRepository(db, cfg.DbTimeout)
+		answerRepository        = postgresql.NewAnswerRepository(db, cfg.DbTimeout)
 	)
 
 	// Services
 	var (
-		checkService       = checking.NewService(checkRepository)
-		fetcherService     = fetcher.NewService(eventRepository, questionRepository, answerRepository, eventBus)
-		incrementerService = incrementer.NewService(eventRepository)
+		checkService   = checking.NewService(checkRepository)
+		fetcherService = fetcher.NewService(eventRepository, eventQuestionRepository, questionRepository, answerRepository)
 	)
 
 	// Command Handlers
@@ -81,16 +77,15 @@ func main() {
 	var (
 		fetcherRandomEventQueryHandler           = fetcher.NewRandomEventQueryHandler(fetcherService)
 		fetcherEventQuestionsByRoundQueryHandler = fetcher.NewEventQuestionsByRoundQueryHandler(fetcherService)
-		fetcherQuestionAnswerQueryHandler        = fetcher.NewQuestionAnswerQueryHandler(fetcherService)
+		fetcherQuestionQueryHandler              = fetcher.NewQuestionQueryHandler(fetcherService)
+		fetcherEventQuestionAnswerQueryHandler   = fetcher.NewEventQuestionAnswerQueryHandler(fetcherService)
 	)
 
 	// Register Query Handlers
 	queryBus.Register(fetcher.RandomEventQueryType, fetcherRandomEventQueryHandler)
 	queryBus.Register(fetcher.EventQuestionsByRoundQueryType, fetcherEventQuestionsByRoundQueryHandler)
-	queryBus.Register(fetcher.QuestionAnswerQueryType, fetcherQuestionAnswerQueryHandler)
-
-	// Event Subscribers
-	eventBus.Subscribe(mygame.EventShownEventType, fetcher.NewIncreaseEventShownOnEventShown(incrementerService))
+	queryBus.Register(fetcher.QuestionQueryType, fetcherQuestionQueryHandler)
+	queryBus.Register(fetcher.EventQuestionAnswerQueryType, fetcherEventQuestionAnswerQueryHandler)
 
 	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, commandBus, queryBus)
 	if err := srv.Run(ctx); err != nil {

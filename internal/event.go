@@ -80,29 +80,6 @@ func (date EventDate) String() string {
 	return date.value.Format(EventDateRFC3339)
 }
 
-// EventShown represents the event shown.
-type EventShown struct {
-	value int
-}
-
-// NewEventShown instantiate VO for EventShown
-func NewEventShown(value int) EventShown {
-	if value <= 0 {
-		return EventShown{
-			value: 0,
-		}
-	}
-
-	return EventShown{
-		value: value,
-	}
-}
-
-// Value returns the event shown value.
-func (e EventShown) Value() int {
-	return e.value
-}
-
 // EventKeywords returns the event keywords.
 type EventKeywords struct {
 	value []string
@@ -129,21 +106,18 @@ type Event struct {
 	id       EventID
 	name     EventName
 	date     EventDate
-	shown    EventShown
 	keywords EventKeywords
 }
 
 // EventRepository defines the expected behaviour from a course storage.
 type EventRepository interface {
 	SearchAll(ctx context.Context) ([]Event, error)
-	Find(ctx context.Context, id EventID) (Event, error)
-	Update(ctx context.Context, event Event) error
 }
 
 //go:generate mockery --case=snake --outpkg=storagemocks --output=platform/storage/storagemocks --name=EventRepository
 
 // NewEvent creates a new event.
-func NewEvent(id, name, date string, shown int, keywords []string) (Event, error) {
+func NewEvent(id, name, date string, keywords []string) (Event, error) {
 	idVO, err := NewEventID(id)
 	if err != nil {
 		return Event{}, err
@@ -159,8 +133,6 @@ func NewEvent(id, name, date string, shown int, keywords []string) (Event, error
 		return Event{}, err
 	}
 
-	shownVO := NewEventShown(shown)
-
 	keywordsVO, err := NewEventKeywords(keywords)
 	if err != nil {
 		return Event{}, err
@@ -170,7 +142,6 @@ func NewEvent(id, name, date string, shown int, keywords []string) (Event, error
 		id:       idVO,
 		name:     nameVO,
 		date:     dateVO,
-		shown:    shownVO,
 		keywords: keywordsVO,
 	}
 	return event, nil
@@ -189,11 +160,6 @@ func (e Event) Name() EventName {
 // Date returns the event date.
 func (e Event) Date() EventDate {
 	return e.date
-}
-
-// Shown returns the event shown.
-func (e Event) Shown() EventShown {
-	return e.shown
 }
 
 // Keywords returns the event keywords.

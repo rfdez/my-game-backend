@@ -7,37 +7,44 @@ import (
 
 	mygame "github.com/rfdez/my-game-backend/internal"
 	"github.com/rfdez/my-game-backend/internal/errors"
-	"github.com/rfdez/my-game-backend/kit/event"
 )
 
 // Service is the interface that provides the fetcher service.
 type Service interface {
 	RandomEvent(context.Context, string) (RandomEventResponse, error)
-	EventQuestionsByRound(context.Context, string, int) (EventQuestionsByRoundResponse, error)
-	QuestionAnswer(context.Context, string) (AnswerResponse, error)
+	EventQuestionsByRound(context.Context, string, int) ([]EventQuestionResponse, error)
+	Question(context.Context, string) (QuestionResponse, error)
+	EventQuestionAnswer(context.Context, string, string) (AnswerResponse, error)
 }
 
 type service struct {
-	eventRepository    mygame.EventRepository
-	questionRepository mygame.QuestionRepository
-	answerRepository   mygame.AnswerRepository
-	eventBus           event.Bus
+	eventRepository         mygame.EventRepository
+	eventQuestionRepository mygame.EventQuestionRepository
+	questionRepository      mygame.QuestionRepository
+	answerRepository        mygame.AnswerRepository
 }
 
 // NewService creates a new instance of Service.
-func NewService(eventRepository mygame.EventRepository, questionRepository mygame.QuestionRepository, answerRepository mygame.AnswerRepository, eventBus event.Bus) Service {
+func NewService(eventRepository mygame.EventRepository, eventQuestionRepository mygame.EventQuestionRepository, questionRepository mygame.QuestionRepository, answerRepository mygame.AnswerRepository) Service {
 	return &service{
-		eventRepository:    eventRepository,
-		questionRepository: questionRepository,
-		answerRepository:   answerRepository,
-		eventBus:           eventBus,
+		eventRepository:         eventRepository,
+		eventQuestionRepository: eventQuestionRepository,
+		questionRepository:      questionRepository,
+		answerRepository:        answerRepository,
 	}
 }
 
 // RandomEvent returns a random event.
 func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResponse, error) {
+	var eventDate time.Time
 	if date == "" {
-		date = time.Now().Format(mygame.EventDateRFC3339)
+		eventDate = time.Now()
+	} else {
+		var err error
+		eventDate, err = time.Parse(mygame.EventDateRFC3339, date)
+		if err != nil {
+			return RandomEventResponse{}, errors.NewWrongInput("invalid %s date, the format should be %s", date, mygame.EventDateRFC3339)
+		}
 	}
 
 	events, err := s.eventRepository.SearchAll(ctx)
@@ -51,7 +58,7 @@ func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResp
 
 	var eventsDate []mygame.Event
 	for _, event := range events {
-		if event.Date().String() == date {
+		if event.Date().Value().Day() == eventDate.Day() && event.Date().Value().Month() == eventDate.Month() {
 			eventsDate = append(eventsDate, event)
 		}
 	}
@@ -60,74 +67,82 @@ func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResp
 		return RandomEventResponse{}, errors.NewNotFound("no events found for date %s", date)
 	}
 
-	minShown := eventsDate[0].Shown().Value()
-	for _, v := range eventsDate {
-		if v.Shown().Value() < minShown {
-			minShown = v.Shown().Value()
-		}
-	}
-
-	var eventsWithMinShown []mygame.Event
-	for _, v := range eventsDate {
-		if v.Shown().Value() == minShown {
-			eventsWithMinShown = append(eventsWithMinShown, v)
-		}
-	}
-
-	randomIndex := rand.Intn(len(eventsWithMinShown))
-	evt := eventsWithMinShown[randomIndex]
-
-	newEvent := mygame.NewEventShownEvent(evt.ID().String())
-	err = s.eventBus.Publish(ctx, []event.Event{newEvent})
-	if err != nil {
-		return RandomEventResponse{}, err
-	}
+	randomIndex := rand.Intn(len(eventsDate))
+	evt := eventsDate[randomIndex]
 
 	return NewRandomEventResponse(evt.ID().String(), evt.Name().String(), evt.Date().String(), evt.Keywords().Value()), nil
 }
 
 // EventQuestionsByRound returns the questions by round.
-func (s *service) EventQuestionsByRound(ctx context.Context, id string, round int) (EventQuestionsByRoundResponse, error) {
+func (s *service) EventQuestionsByRound(ctx context.Context, id string, round int) ([]EventQuestionResponse, error) {
+	if round < 1 {
+		return nil, errors.NewWrongInput("round must be greater than 0")
+	}
+
 	eventID, err := mygame.NewEventID(id)
 	if err != nil {
-		return EventQuestionsByRoundResponse{}, err
+		return nil, err
 	}
 
-	questions, err := s.questionRepository.SearchByEventID(ctx, eventID)
+	eventQuestions, err := s.eventQuestionRepository.SearchByEventID(ctx, eventID)
 	if err != nil {
-		return EventQuestionsByRoundResponse{}, err
+		return nil, err
 	}
 
-	var questionsByRound []mygame.Question
-	for _, v := range questions {
+	if len(eventQuestions) == 0 {
+		return nil, nil
+	}
+
+	var eventQuestionsByRound []mygame.EventQuestion
+	for _, v := range eventQuestions {
 		if v.Round().Value() == round {
-			questionsByRound = append(questionsByRound, v)
+			eventQuestionsByRound = append(eventQuestionsByRound, v)
 		}
 	}
 
-	if len(questionsByRound) == 0 {
-		return EventQuestionsByRoundResponse{}, errors.NewNotFound("no questions found for event %s and round %d", id, round)
+	if len(eventQuestionsByRound) == 0 {
+		return nil, nil
 	}
 
-	questionsResponse := make([]QuestionResponse, len(questionsByRound))
-	for i, v := range questionsByRound {
-		questionsResponse[i] = NewQuestionResponse(v.ID().String(), v.Text().String(), v.EventID().String())
+	eventQuestionResponse := make([]EventQuestionResponse, len(eventQuestionsByRound))
+	for i, v := range eventQuestionsByRound {
+		eventQuestionResponse[i] = NewEventQuestionResponse(v.EventID().String(), v.QuestionID().String(), v.Round().Value())
 	}
 
-	return NewEventQuestionsByRoundResponse(questionsResponse), nil
+	return eventQuestionResponse, nil
 }
 
-// QuestionAnswer returns the answer.
-func (s *service) QuestionAnswer(ctx context.Context, questionID string) (AnswerResponse, error) {
+// Question returns the question.
+func (s *service) Question(ctx context.Context, questionID string) (QuestionResponse, error) {
+	questionIDVO, err := mygame.NewQuestionID(questionID)
+	if err != nil {
+		return QuestionResponse{}, err
+	}
+
+	question, err := s.questionRepository.Find(ctx, questionIDVO)
+	if err != nil {
+		return QuestionResponse{}, err
+	}
+
+	return NewQuestionResponse(question.ID().String(), question.Text().String()), nil
+}
+
+// EventQuestionAnswer returns the answer.
+func (s *service) EventQuestionAnswer(ctx context.Context, eventID, questionID string) (AnswerResponse, error) {
+	eventIDVO, err := mygame.NewEventID(eventID)
+	if err != nil {
+		return AnswerResponse{}, err
+	}
+
 	questionIDVO, err := mygame.NewQuestionID(questionID)
 	if err != nil {
 		return AnswerResponse{}, err
 	}
 
-	answer, err := s.answerRepository.FindByQuestionID(ctx, questionIDVO)
+	answer, err := s.answerRepository.FindByEventIDAndQuestionID(ctx, eventIDVO, questionIDVO)
 	if err != nil {
 		return AnswerResponse{}, err
 	}
 
-	return NewAnswerResponse(answer.ID().String(), answer.Text().String(), answer.QuestionID().String()), nil
+	return NewAnswerResponse(answer.EventID().String(), answer.QuestionID().String(), answer.Text().String()), nil
 }

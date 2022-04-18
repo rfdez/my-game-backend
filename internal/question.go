@@ -50,42 +50,21 @@ func (text QuestionText) String() string {
 	return text.value
 }
 
-// QuestionRound represents the question round.
-type QuestionRound struct {
-	value int
-}
-
-// NewQuestionRound instantiate the VO for the question round.
-func NewQuestionRound(value int) (QuestionRound, error) {
-	if value < 1 {
-		return QuestionRound{}, errors.NewWrongInput("the field Question Round can not be less than 1")
-	}
-
-	return QuestionRound{
-		value: value,
-	}, nil
-}
-
-// Value returns the question round value.
-func (v QuestionRound) Value() int {
-	return v.value
-}
-
 // Question is the domain object for the question.
 type Question struct {
-	id      QuestionID
-	text    QuestionText
-	round   QuestionRound
-	eventID EventID
+	id   QuestionID
+	text QuestionText
 }
 
 // QuestionRepository is the interface for the question repository.
 type QuestionRepository interface {
-	SearchByEventID(context.Context, EventID) ([]Question, error)
+	Find(context.Context, QuestionID) (Question, error)
 }
 
+//go:generate mockery --case=snake --outpkg=storagemocks --output=platform/storage/storagemocks --name=QuestionRepository
+
 // NewQuestion instantiate the entity for the question.
-func NewQuestion(id, text string, round int, eventID string) (Question, error) {
+func NewQuestion(id, text string) (Question, error) {
 	idVO, err := NewQuestionID(id)
 	if err != nil {
 		return Question{}, err
@@ -96,21 +75,9 @@ func NewQuestion(id, text string, round int, eventID string) (Question, error) {
 		return Question{}, err
 	}
 
-	roundVO, err := NewQuestionRound(round)
-	if err != nil {
-		return Question{}, err
-	}
-
-	eventIDVO, err := NewEventID(eventID)
-	if err != nil {
-		return Question{}, err
-	}
-
 	return Question{
-		id:      idVO,
-		text:    textVO,
-		round:   roundVO,
-		eventID: eventIDVO,
+		id:   idVO,
+		text: textVO,
 	}, nil
 }
 
@@ -122,14 +89,4 @@ func (v Question) ID() QuestionID {
 // Text returns the question text.
 func (v Question) Text() QuestionText {
 	return v.text
-}
-
-// Round returns the question round.
-func (v Question) Round() QuestionRound {
-	return v.round
-}
-
-// EventID returns the event unique identifier.
-func (v Question) EventID() EventID {
-	return v.eventID
 }

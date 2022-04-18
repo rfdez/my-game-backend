@@ -3,31 +3,8 @@ package mygame
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/rfdez/my-game-backend/internal/errors"
 )
-
-// AnswerID is the ID of the answer
-type AnswerID struct {
-	value string
-}
-
-// NewAnswerID instantiate the VO for AnswerID
-func NewAnswerID(value string) (AnswerID, error) {
-	v, err := uuid.Parse(value)
-	if err != nil {
-		return AnswerID{}, errors.NewWrongInput("invalid answer id %s", value)
-	}
-
-	return AnswerID{
-		value: v.String(),
-	}, nil
-}
-
-// String type converts the AnswerID into string.
-func (id AnswerID) String() string {
-	return id.value
-}
 
 // AnswerText is the text of the answer
 type AnswerText struct {
@@ -52,24 +29,21 @@ func (text AnswerText) String() string {
 
 // Answer is the answer
 type Answer struct {
-	id         AnswerID
-	text       AnswerText
+	eventID    EventID
 	questionID QuestionID
+	text       AnswerText
 }
 
 // AnswerRepository is the interface for the answer repository
 type AnswerRepository interface {
-	FindByQuestionID(context.Context, QuestionID) (Answer, error)
+	FindByEventIDAndQuestionID(context.Context, EventID, QuestionID) (Answer, error)
 }
 
-// NewAnswer instantiate the VO for Answer
-func NewAnswer(id, text, questionID string) (Answer, error) {
-	idVO, err := NewAnswerID(id)
-	if err != nil {
-		return Answer{}, err
-	}
+//go:generate mockery --case=snake --outpkg=storagemocks --output=platform/storage/storagemocks --name=AnswerRepository
 
-	textVO, err := NewAnswerText(text)
+// NewAnswer instantiate the VO for Answer
+func NewAnswer(eventID, questionID, text string) (Answer, error) {
+	eventIDVO, err := NewEventID(eventID)
 	if err != nil {
 		return Answer{}, err
 	}
@@ -79,24 +53,29 @@ func NewAnswer(id, text, questionID string) (Answer, error) {
 		return Answer{}, err
 	}
 
+	textVO, err := NewAnswerText(text)
+	if err != nil {
+		return Answer{}, err
+	}
+
 	return Answer{
-		id:         idVO,
-		text:       textVO,
+		eventID:    eventIDVO,
 		questionID: questionIDVO,
+		text:       textVO,
 	}, nil
 }
 
-// ID type converts the Answer into string.
-func (a Answer) ID() AnswerID {
-	return a.id
-}
-
-// Text type converts the Answer into string.
-func (a Answer) Text() AnswerText {
-	return a.text
+// EventID type converts the Answer into string.
+func (a Answer) EventID() EventID {
+	return a.eventID
 }
 
 // QuestionID type converts the Answer into string.
 func (a Answer) QuestionID() QuestionID {
 	return a.questionID
+}
+
+// Text type converts the Answer into string.
+func (a Answer) Text() AnswerText {
+	return a.text
 }

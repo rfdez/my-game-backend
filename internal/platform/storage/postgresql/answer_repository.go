@@ -23,12 +23,12 @@ func NewAnswerRepository(db *sql.DB, dbTimeout time.Duration) *answerRepository 
 	}
 }
 
-// FindByQuestionID implements the mygame.AnswerRepository repository.
-func (r *answerRepository) FindByQuestionID(ctx context.Context, questionID mygame.QuestionID) (mygame.Answer, error) {
+// FindByEventIDAndQuestionID implements the mygame.AnswerRepository repository.
+func (r *answerRepository) FindByEventIDAndQuestionID(ctx context.Context, eventID mygame.EventID, questionID mygame.QuestionID) (mygame.Answer, error) {
 	answerSQLStruct := sqlbuilder.NewStruct(new(sqlAnswer))
 
 	sb := answerSQLStruct.SelectFrom(sqlAnswerTable)
-	sb.Where(sb.E("question_id", questionID.String()))
+	sb.Where(sb.E("event_id", eventID.String()), sb.E("question_id", questionID.String()))
 
 	query, args := sb.BuildWithFlavor(sqlbuilder.PostgreSQL)
 
@@ -38,19 +38,19 @@ func (r *answerRepository) FindByQuestionID(ctx context.Context, questionID myga
 	var answer sqlAnswer
 	if err := r.db.QueryRowContext(ctxTimeout, query, args...).Scan(answerSQLStruct.Addr(&answer)...); err != nil {
 		if err == sql.ErrNoRows {
-			return mygame.Answer{}, errors.NewNotFound("answer not found")
+			return mygame.Answer{}, errors.NewNotFound("answer with %s event id and %s question id not found", eventID.String(), questionID.String())
 		}
 
 		return mygame.Answer{}, errors.Wrap(err, "failed to search answer")
 	}
 
 	ans, err := mygame.NewAnswer(
-		answer.ID,
-		answer.Text,
+		answer.EventID,
 		answer.QuestionID,
+		answer.Text,
 	)
 	if err != nil {
-		return mygame.Answer{}, errors.Wrap(err, "failed to create answer")
+		return mygame.Answer{}, err
 	}
 
 	return ans, nil

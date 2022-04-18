@@ -14,6 +14,5 @@ type sqlEvent struct {
 	ID       string         `db:"id"`
 	Name     string         `db:"name"`
 	Date     time.Time      `db:"date"`
-	Shown    int            `db:"shown"`
 	Keywords pq.StringArray `db:"keywords"`
 }
