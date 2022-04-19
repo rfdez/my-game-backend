@@ -53,7 +53,7 @@ func (s *service) RandomEvent(ctx context.Context, date string) (RandomEventResp
 	}
 
 	if len(events) == 0 {
-		return RandomEventResponse{}, errors.NewNotFound("no events found")
+		events = []mygame.Event{}
 	}
 
 	var eventsDate []mygame.Event
